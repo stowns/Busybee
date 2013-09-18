@@ -105,12 +105,16 @@ var conn = new busybee.connection.broker('tcp://*:5559', 'tcp://*:5560');
 `busybee.logger` is a wrapped instance of [bunyan][bunyan] with added methods for indexing specific log levels to MongoDb.  If indexing is enabled each log-level will create it's own collection in MongoDb for storage.  ie) 'warn' logs will be available in the  'warn_logs' collection.  To enable log indexing add the following to your configuration file.
 
 ```js
+store: {
+    mongo: 'mongodb://localhost/service_1',
+    redis: 'redis://localhost:6379'
+},
 logger: {
-    index:  {
-      type : 'Mongo',
-      levels : ['info', warn', 'error', 'fatal']
-    }
+  index:  {
+    type : 'Mongo',
+    levels : ['info', warn', 'error', 'fatal']
   }
+}
 ```
 **Note: *levels* describes which log-levels to index to MongoDb. 'Mongo' is the only database currently supported**
 
@@ -119,11 +123,8 @@ logger: {
 
 #### Registering Your App
 
+*Note: the Rep or Broker Connection that this app will recieve requests on will bind to 'tcp://*:5563'. However, when registering the app we are providing the full address that requesting apps should 'connect' to.*
 ```js
-// *Note* the Rep or Broker Connection that this app will recieve requests on will bind
-// to 'tcp://*:5563'. However, when registering the app we are providing the 
-// full address that requesting apps should 'connect' to.
-
 busybee.locator.register('my_app', 'tcp://localhost:5563');
 
 var conn = new busybee.connection.rep('tcp://*:5563', function(err, req) { logger.info(req) });
@@ -188,6 +189,7 @@ as they become available. This produces highly responsive and reliable services.
 
 The conf can store custom configuration as well as busybee-specific configuration.  For example, the 'sockets' portion in the conf below was added to allow the developer to easily retrieve those values when registering the app and setting up its connections and will not be used automatically by busybee.  On the other hand 'app', 'store', and 'logger' are all automatically read by busybee for internal tasks.
 
+*Note: The only required value of the conf is 'app'.*
 ```js
 module.exports = {
   app: {
