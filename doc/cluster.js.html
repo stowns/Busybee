@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: busybee/cluster.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: busybee/cluster.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * Runs an application process in master-worker arrangement to
+ * the maximum number of available CPUs.
+ */
+
+var _          = require('lodash'),
+    locator = require('./locator'),
+    log = busybee.logger,
+    Cluster;
+
+/**
+ * @constructor
+ */
+Cluster = module.exports = function (conf) {
+  if (conf)
+    this.conf = conf;
+
+  _.bindAll(this);
+  this.workerRestartArray = []
+
+  process.nextTick(this.start);
+
+  return this;
+
+};
+
+/** @alias {Cluster.prototype.sysCluster} onto Cluster constructor for static ref */
+Cluster.prototype.sysCluster = Cluster.sysCluster = require('cluster');
+
+/**
+ * Starts the cluster
+ */
+Cluster.prototype.start = _.once(function () {
+
+  var cluster = this;
+
+
+  /** master initialization */
+  this.master(function () {
+    log.info('Master process id ' + process.pid.toString());
+
+    /** Default number of workers is the number of CPUs */
+    var cpus        = require('os').cpus().length,
+        numWorkers  = cluster.numWorkers || cpus;
+    
+    /** explicitly set worker number */
+    cluster.workers(numWorkers);
+
+    log.info('cluster: Spawning ' + numWorkers
+              + ' workers for ' + cpus + ' CPUs');
+
+    /** Restart workers when they die */
+    cluster.sysCluster.on('exit', cluster.restartWorker);
+
+    cluster.sysCluster.on('fork', function(worker) {
+      log.info("worker " + worker.process.pid + " (#"+worker.id+") has spawned");
+    });
+
+    _.times(numWorkers, cluster.sysCluster.fork);
+
+
+    /* SETUP SIGNALS */
+    
+    /* signal for trigger a rolling restart of all workers (no downtime) */
+    process.on('SIGINT', function() {
+      /* TODO check for more than just a conf to determine if this is a service
+       and needs to be unregistered */
+      if (!cluster.conf) {
+        cluster.shutdown();
+
+        return;
+      }
+
+      locator.unregister(cluster.conf.app.name, cluster.conf.sockets.service, function(err, status) {
+        if (err) log.info('unable to deregister ' + cluster.conf.app.name);
+        
+        cluster.shutdown();
+      });
+    });
+
+    process.on('SIGUSR2', function(){  
+      log.info("Signal: SIGUSR2");   
+      log.info("swap out new workers one-by-one");   
+      cluster.workerRestartArray = []; 
+      
+      for(var i in cluster.sysCluster.workers){    
+        cluster.workerRestartArray.push(cluster.sysCluster.workers[i]);  
+      }
+     
+      cluster.restartWorker();
+    });
+  });
+
+  /* worker initialization */
+  this.worker(function() {
+    process.on('message', function(msg) {
+      if(msg == "stop"){
+        process.send("stopping");
+        process.exit();
+      }
+    });
+  });
+
+  return this;
+});
+
+/**
+ * Restarts a dead worker
+ *
+ * @private
+ * @param {cluster.worker} worker worker that died
+ * @param {Number} code Exit code of dead worker
+ * @param {String} signal The signal that killed the worker
+ */
+Cluster.prototype.restartWorker = function (worker, code, signal) {
+  var cluster = this;
+  var workersRunning = 0;
+  for (var i in cluster.sysCluster.workers){ workersRunning++; }
+
+  /* only start a worker if the numWorkers (expected) is > than workersRunning */
+  if ( cluster.numWorkers > workersRunning ) {
+    /* delayed to prevent CPU explosions if crashes happen to quickly */
+    _.delay(function () {
+      if (worker) {
+        log.info('cluster: Worker ' + worker.id + ' (pid '
+         + worker.process.pid + ') ' + 'died ('
+         + worker.process.exitCode + '). Respawning..');
+      }
+
+      cluster.sysCluster.fork();
+    }, 100);
+  } 
+
+  //log.info('workerRestartArray: ' + cluster.workerRestartArray);
+  /* workerRestartArray used for rolling restarts (SIGUSR2) */
+  if (cluster.workerRestartArray.length > 0) {
+    var worker = cluster.workerRestartArray.shift();
+    log.info("Sending 'stop' signal to worker " + worker.process.pid);
+    // killing a worker will in-turn call restartWorker and restart itself.
+    worker.send("stop");
+  }
+
+};
+
+/**
+ * Sets the number of workers we are to spawn
+ *
+ * @param {Number} numWorkers How many workers shall we spawn?
+ * @return this
+ */
+Cluster.prototype.workers = function (numWorkers) {
+
+  this.numWorkers = numWorkers;
+
+  return this;
+
+};
+
+/**
+ * Executes code on a master process
+ *
+ * @param {Function} cb Callback to be run if we are in a master process
+ */
+Cluster.prototype.master = function (cb) {
+
+  if (this.sysCluster.isMaster && cb instanceof Function) cb();
+
+  return this;
+
+};
+
+/**
+ * Executes code on a worker process
+ *
+ * @param {Function} cb Callback to be run if we are in a worker process
+ */
+Cluster.prototype.worker = function (cb) {
+
+  if (this.sysCluster.isWorker && cb instanceof Function) cb();
+
+  return this;
+
+};
+
+/**
+ * Executes code on both processes
+ *
+ * @param {Function} cb Callback to be run
+ */
+Cluster.prototype.shared = function (cb) {
+
+  if (cb instanceof Function) cb();
+
+  return this;
+
+}; 
+
+Cluster.prototype.shutdown = function () {
+  this.workers(0);
+          
+  for(var i in this.sysCluster.workers){    
+    this.sysCluster.workers[i].send('stop');  
+  }
+  process.exit();
+  log.info('exiting ' +  process.pid.toString());
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-busybee.html">busybee</a></li></ul><h3>Classes</h3><ul><li><a href="Broker.html">Broker</a></li><li><a href="Cluster.html">Cluster</a></li><li><a href="Locator.html">Locator</a></li><li><a href="Logger.html">Logger</a></li><li><a href="module-busybee-BusyBee.html">BusyBee</a></li><li><a href="Rep.html">Rep</a></li><li><a href="Req.html">Req</a></li><li><a href="Worker.html">Worker</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_">_</a></li><li><a href="global.html#NO_INIT_MODULES
+
+These modules do not require busybee.init to
+have been called prior to their reference">NO_INIT_MODULES
+
+These modules do not require busybee.init to
+have been called prior to their reference</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.2.0</a> on Mon Sep 16 2013 22:15:59 GMT-0500 (CDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
