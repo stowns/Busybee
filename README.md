@@ -123,7 +123,7 @@ logger: {
 
 #### Registering Your App
 
-*Note: the Rep or Broker Connection that this app will recieve requests on will bind to 'tcp://*:5563'. However, when registering the app we are providing the full address that requesting apps should 'connect' to.*
+_Note: the Rep or Broker Connection that this app will recieve requests on will bind to 'tcp://*:5563'. However, when registering the app we are providing the full address that requesting apps should 'connect' to._
 ```js
 busybee.locator.register('my_app', 'tcp://localhost:5563');
 
