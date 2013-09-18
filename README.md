@@ -30,7 +30,7 @@ Shared ovs modules for node.js
 var busybee  = require('busybee');
 busybee.init({ name : 'my_app_name' });
 ```
-busybee will be available globally throughout your application after initialization.
+busybee will now be available globally.
 
 ## Modules
 
