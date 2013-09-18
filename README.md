@@ -13,6 +13,7 @@ Shared ovs modules for node.js
   * [Connection](#connection)
   * [Logger](#logger)
   * [Locator](#locator)
+    * [Registering Your App](#registering-your-app)
   * [Cluster](#cluster)
 * [Architecture](#architecture)
   * [SOA](#soa)
@@ -152,11 +153,18 @@ logger: {
 
 ### Locator
 
-`busybee.locator` handles registration, unregistration and lookup of all busybee applications running in your 'hive' and is automatically instantiated on busybee.init().  The Locator is used internally by the different connection types that Busybee exposes and will rarely be required explicitly.  However, the locator can be accessed as such
+`busybee.locator` handles registration, unregistration and lookup of all busybee applications running in your 'hive' and is automatically instantiated on busybee.init().  The Locator is used internally by the different connection types that Busybee exposes will not need to be called explicitly in most cases.  However, in order for your application to accept requests from other Busybee applications you must register your application during its initialization.
+
+#### Registering Your App
 
 ```js
-var locator = busybee.locator;
-var address = locator.find('name_of_service');
+// *Note* the Rep or Broker Connection that this app will recieve requests on will bind
+// to 'tcp://*:5563'. However, when registering the app we are providing the 
+// full address that requesting apps should 'connect' to.
+
+busybee.locator.register('my_app', 'tcp://localhost:5563');
+
+var conn = new busybee.connection.rep('tcp://*:5563', function(err, req) { logger.info(req) });
 ```
 
 ### Cluster
