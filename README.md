@@ -9,20 +9,19 @@ Shared ovs modules for node.js
 * [Requirements](#requirements)
 * [Getting Started](#getting-started)
 * [Modules](#modules)
-    * [Conf](#conf)
     * [Connection](#connection)
     * [Logger](#logger)
     * [Locator](#locator)
         - [Registering Your App](#registering-your-app)
     * [Cluster](#cluster)
+    * [Conf](#conf)
     * [Architecture](#architecture)
-    * [SOA](#soa)
+        - [SOA](#soa)
 * [Versions](#versions)
 
 ## Getting Started
 
 ### Dependencies
-
 - [Node.js ≥ 0.8.21][node]
 - [Redis][redis]
 - [ZeroMQ][zmq]
@@ -35,42 +34,7 @@ busybee will now be available globally.
 
 ## Modules
 
-### Conf
-
-`busybee.conf` is automatically loaded on busybee.init().  The default location for configuration is /root_of_app/conf /.  Two files are expected in the conf/ directory, development.js and production.js.
-
-```js
-module.exports = {
-  app: {
-    name : 'service_1'
-  },
-  sockets: {
-    service : 'tcp://localhost:5559',
-    broker: {
-      front: 'tcp://*:5559',
-      back: 'tcp://*:5560'
-    },
-    worker: 'tcp://localhost:5560'
-  },
-  store: {
-    mongo: 'mongodb://localhost/service_1',
-    redis: 'redis://localhost:6379'
-  },
-  logger: {
-    index:  {
-      type : 'Mongo',
-      levels : ['warn', 'error', 'fatal']
-    }
-  }
-};
-```
-Alternatively, a custom configuration path can be supplied on initialization of Busybee:
-```js
-busybee.init({ name : 'api', conf : '/my/absolute/conf/path' });
-```
-
 ### Connection
-
 `busybee.connection` is where much of Busybee's power lies.  This module exposes several connection types that use [zmq] under the covers to communicate with other Busybee applications.  It's likely that in architecting your application you will implement several different types of Busybee Connections.
 
 By default all connections that make requests JSON.stringify them before sending while connections that accept requests JSON.parse them.  If you would like to transport a different data structure you will need to supply a 'parser' and 'stringifier' as opts to the connection. *Note: A Broker connection does not require a parser or stringifier as its only job is to load balance to workers and does not taint the request*
@@ -138,7 +102,6 @@ var conn = new busybee.connection.broker('tcp://*:5559', 'tcp://*:5560');
 ```
 
 ### Logger
-
 `busybee.logger` is a wrapped instance of [bunyan][bunyan] with added methods for indexing specific log levels to MongoDb.  If indexing is enabled each log-level will create it's own collection in MongoDb for storage.  ie) 'warn' logs will be available in the  'warn_logs' collection.  To enable log indexing add the following to your configuration file.
 
 ```js
@@ -152,7 +115,6 @@ logger: {
 **Note: *levels* describes which log-levels to index to MongoDb. 'Mongo' is the only database currently supported**
 
 ### Locator
-
 `busybee.locator` handles registration, unregistration and lookup of all busybee applications running in your 'hive' and is automatically instantiated on busybee.init().  The Locator is used internally by the different connection types that Busybee exposes will not need to be called explicitly in most cases.  However, in order for your application to accept requests from other Busybee applications you must register your application during its initialization.
 
 #### Registering Your App
@@ -168,7 +130,6 @@ var conn = new busybee.connection.rep('tcp://*:5563', function(err, req) { logge
 ```
 
 ### Cluster
-
 `busybee.cluster` provides a simple interface to run your appliction as a process
 cluster.
 
@@ -221,6 +182,41 @@ loop of the master process to spin as quickly as it can, distributing work to ea
 as they become available. This produces highly responsive and reliable services.
 
 **Learn more** [cluster documentation][cluster]
+
+### Conf
+`busybee.conf` is automatically loaded on busybee.init().  The default location for configuration is /root_of_app/conf /.  Two files are expected in the conf/ directory, development.js and production.js.  Once loaded the conf can be accessed via busybee.conf ie) busybee.conf.app.name --> 'service_1'.
+
+The conf can store custom configuration as well as busybee-specific configuration.  For example, the 'sockets' portion in the conf below was added to allow the developer to easily retrieve those values when registering the app and setting up its connections and will not be used automatically by busybee.  On the other hand 'app', 'store', and 'logger' are all automatically read by busybee for internal tasks.
+
+```js
+module.exports = {
+  app: {
+    name : 'service_1'
+  },
+  sockets: {
+    service : 'tcp://localhost:5559',
+    broker: {
+      front: 'tcp://*:5559',
+      back: 'tcp://*:5560'
+    },
+    worker: 'tcp://localhost:5560'
+  },
+  store: {
+    mongo: 'mongodb://localhost/service_1',
+    redis: 'redis://localhost:6379'
+  },
+  logger: {
+    index:  {
+      type : 'Mongo',
+      levels : ['warn', 'error', 'fatal']
+    }
+  }
+};
+```
+Alternatively, a custom configuration path can be supplied on initialization of Busybee:
+```js
+busybee.init({ name : 'api', conf : '/my/absolute/conf/path' });
+```
 
 ## Architecture
 
