@@ -111,7 +111,7 @@ store: {
 logger: {
   index:  {
     type : 'Mongo',
-    levels : ['info', warn', 'error', 'fatal']
+    levels : ['info', 'warn', 'error', 'fatal']
   }
 }
 ```
