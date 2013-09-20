@@ -106,8 +106,7 @@ var conn = new busybee.connection.broker('tcp://*:5559', 'tcp://*:5560');
 
 ```js
 store: {
-    mongo: 'mongodb://localhost/service_1',
-    redis: 'redis://localhost:6379'
+    mongo: 'mongodb://localhost/service_1'
 },
 logger: {
   index:  {
