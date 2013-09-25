@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: busybee/connection/broker.js</title>
+    <title>JSDoc: Source: busybee/connection/push.js</title>
     
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">Source: busybee/connection/broker.js</h1>
+    <h1 class="page-title">Source: busybee/connection/push.js</h1>
     
     
 
@@ -26,41 +26,56 @@
     <section>
         <article>
             <pre class="prettyprint source"><code>var zmq = require('zmq'),
-    log = busybee.logger,
     _ = require('lodash'),
-    Broker;
+    log = busybee.logger,
+    events = require('events'),
+    Push;
 
 /**
  * @constructor
  *
- * @param {String} frontendAddress - The address to recieve requests on.
- * @param {String} backendAddress - The address of workers to deal requests to.
+ * @param {Object} [opts] - Any additional options.  Currently only 'stringifier' is supported.
  */
-Broker = module.exports = function (frontendAddress, backendAddress) {
-  this.init(frontendAddress, backendAddress);
+Push = module.exports = function (opts) {
+  events.EventEmitter.call(this);
+  this.opts = opts;
+
+  return this;
 }
 
-Broker.prototype.init = function (frontEnd, backEnd) {
-  var frontend = zmq.socket('router'),
-      backend  = zmq.socket('dealer');
-  
-  log.info('Broker connecting to frontend: ' + frontEnd);
-  log.info('Broker connecting to backend: ' + backEnd);
-  
-  frontend.bindSync(frontEnd);
-  backend.bindSync(backEnd);
+Push.prototype.__proto__ = events.EventEmitter.prototype;
 
-  frontend.on('message', function() {
-    // Note that separate message parts come as function arguments.
-    var args = Array.apply(null, arguments);
-    // Pass array of strings/buffers to send multipart messages.
-    backend.send(args);
-  });
+/**
+ * Binds the connection to a tcp/ipc address
+ *
+ * @param {String} address - tcp/ipc address to bind to
+ */
+Push.prototype.bind = function (address) {
+  var socket = zmq.socket('push'),
+      _this = this;
 
-  backend.on('message', function() {
-    var args = Array.apply(null, arguments);
-    frontend.send(args);
+  socket.bind(address, function(err) {
+    if (err) return _this.emit('error', err);
+    
+    log.info('Push Connection Binding to: ' + address);
+    
+    _this.socket = socket;
+
+    _this.emit('ready');
   });
+}
+
+/**
+ * Publishes a message
+ *
+ * @param {Object} payload - Object to be published
+ */
+Push.prototype.send = function (payload) {
+  payload = (this.opts && this.opts.stringifier)
+              ? this.opts.stringifier(payload)
+              : JSON.stringify(payload);
+
+  this.socket.send(payload);
 }</code></pre>
         </article>
     </section>
