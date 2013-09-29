@@ -158,6 +158,21 @@ new busybee.cluster()
 By default, the number of workers spawned will equal the number of CPUs on the machine.
 You may specify the number of workers using the `workers` method:
 
+
+#### Signals
+The Cluster module supports a couple of kill signals
+
+- SIGINT - graceful shutdown
+```
+kill -s SIGINT (process_id)
+```
+
+- SIGUSR2 - Rolling restart.  Useful for reloading configuration without downtime.
+```
+kill -s SIGUSR2 (process_id)
+```
+
+
 ```js
 new busybee.cluster()
   .workers(10)
