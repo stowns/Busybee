@@ -158,21 +158,6 @@ new busybee.cluster()
 By default, the number of workers spawned will equal the number of CPUs on the machine.
 You may specify the number of workers using the `workers` method:
 
-
-#### Signals
-The Cluster module supports a couple of kill signals
-
-- SIGINT - graceful shutdown
-```
-kill -s SIGINT (process_id)
-```
-
-- SIGUSR2 - Rolling restart.  Useful for reloading configuration without downtime.
-```
-kill -s SIGUSR2 (process_id)
-```
-
-
 ```js
 new busybee.cluster()
   .workers(10)
@@ -197,6 +182,19 @@ loop of the master process to spin as quickly as it can, distributing work to ea
 as they become available. This produces highly responsive and reliable services.
 
 **Learn more** [cluster documentation][cluster]
+
+#### Signals
+The Cluster module supports a couple of kill signals
+
+- SIGINT - graceful shutdown
+```
+kill -s SIGINT (process_id)
+```
+
+- SIGUSR2 - Rolling restart.  Useful for reloading configuration without downtime.
+```
+kill -s SIGUSR2 (process_id)
+```
 
 ### Conf
 `busybee.conf` is automatically loaded on busybee.init().  The default location for configuration is /root_of_app/conf /.  Two files are expected in the conf/ directory, development.js and production.js.  Once loaded the conf can be accessed via busybee.conf ie) busybee.conf.app.name --> 'service_1'.
