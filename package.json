@@ -3,7 +3,7 @@
   "description": "Library for distributing applications in a 'hive'",
   "version": "0.1.0",
   "private": true,
-  "author": "Simon Townsend <stowns3@gmail.com>, Chris Rogers <crog",
+  "author": "Simon Townsend <stowns3@gmail.com>, Chris Rogers <chrissrogers@gmail.com>",
   "main": "./lib/main.js",
   "dependencies": {
     "lodash": "1.x",
