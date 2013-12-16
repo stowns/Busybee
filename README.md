@@ -6,7 +6,6 @@ Busybee
 Busybee aims to handle many of the tasks involved with running applications in a distributed manner (a hive).  These tasks include configuration loading, logging, registration, communication and clustering
 
 Shared ovs modules for node.js
-* [Requirements](#requirements)
 * [Getting Started](#getting-started)
 * [Modules](#modules)
     * [Connection](#connection)
