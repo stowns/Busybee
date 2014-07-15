@@ -5,7 +5,6 @@ Busybee
 
 Busybee aims to handle many of the tasks involved with running applications in a distributed manner (a hive).  These tasks include configuration loading, logging, registration, communication and clustering
 
-Shared ovs modules for node.js
 * [Getting Started](#getting-started)
 * [Modules](#modules)
     * [Connection](#connection)
@@ -117,7 +116,7 @@ logger: {
 **Note: *levels* describes which log-levels to index to MongoDb. 'Mongo' is the only database currently supported**
 
 ### Locator
-`busybee.locator` handles registration, unregistration and lookup of all busybee applications running in your 'hive' and is automatically instantiated on busybee.init().  The Locator is used internally by the different connection types that Busybee exposes will not need to be called explicitly in most cases.  However, in order for your application to accept requests from other Busybee applications you must register your application during its initialization.
+`busybee.locator` handles registration, unregistration and lookup of all busybee applications running in your 'hive' and is automatically instantiated on busybee.init().  The Locator is used internally by the different connection types that Busybee exposes and will not need to be called explicitly in most cases.  However, in order for your application to accept requests from other Busybee applications you must register your application during its initialization.
 
 #### Registering Your App
 
